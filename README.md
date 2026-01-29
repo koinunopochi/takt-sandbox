@@ -55,7 +55,8 @@ takt "タスクの内容"
 
 ## 仕組み
 
-- ホストの `~/.claude/.credentials.json` のみをマウントして認証情報を共有（hooks や permissions 等のホスト固有設定は持ち込まない）
+- Claude Code のセッションデータは named volume (`claude-data`) で永続化。セッション継続（resume）が可能
+- ホストの `~/.claude/.credentials.json` のみを読み取り専用でマウントして認証情報を共有（hooks や permissions 等のホスト固有設定は持ち込まない）
 - ホストの `~/.takt/` をマウントしてワークフロー・エージェント設定を共有
 - プロジェクトディレクトリは `/workspace` にマウント（読み書き可能）
 - ホストOSの他のファイルにはアクセスできない
@@ -66,7 +67,7 @@ takt "タスクの内容"
 
 **症状:** `Claude Code process exited with code 1` でワークフローが即座に失敗する。
 
-**原因:** プロジェクトの `.takt/agent_sessions.json` に、ホスト側や以前のコンテナ実行で作られた古いセッションIDが残っている場合、taktがそのセッションを resume しようとして失敗する。
+**原因:** プロジェクトの `.takt/agent_sessions.json` に古いセッションIDが残っており、named volume 内に対応するセッションデータがない場合に発生する。Docker volume を削除した場合や、ホスト側で直接 takt を使った後にコンテナ経由で実行した場合に起きやすい。
 
 **対処:**
 
@@ -80,8 +81,6 @@ rm .takt/agent_sessions.json
 ```bash
 takt /clear
 ```
-
-**発生タイミング:** ホストとコンテナを行き来して takt を使った場合、コンテナを再構築した場合など。
 
 ### コンテナ内では Docker 操作ができない
 
