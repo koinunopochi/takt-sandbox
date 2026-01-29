@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SANDBOX_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+export TAKT_PROJECT_DIR="$(pwd)"
+
+docker compose -f "$SANDBOX_DIR/docker-compose.yml" run --rm takt "$@"

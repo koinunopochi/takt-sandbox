@@ -1,0 +1,10 @@
+services:
+  takt:
+    build: .
+    volumes:
+      - ${HOME}/.claude/.credentials.json:/root/.claude/.credentials.json:ro
+      - ${HOME}/.takt:/root/.takt
+      - ${TAKT_PROJECT_DIR:-.}:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
