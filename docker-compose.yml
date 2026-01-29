@@ -3,9 +3,11 @@ services:
     build: .
     volumes:
       - claude-data:/root/.claude
-      - ${HOME}/.claude/.credentials.json:/root/.claude/.credentials.json:ro
       - ${HOME}/.takt:/root/.takt
       - ${TAKT_PROJECT_DIR:-.}:/workspace
+    environment:
+      - CLAUDE_CODE_OAUTH_TOKEN
+      - ANTHROPIC_API_KEY
     working_dir: /workspace
     stdin_open: true
     tty: true

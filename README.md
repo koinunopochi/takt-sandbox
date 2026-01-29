@@ -9,9 +9,10 @@
 ```
 takt-sandbox/
 ├── Dockerfile              # Debian slim + Node.js 20 + Claude Code + takt
-├── docker-compose.yml      # volumes設定（認証・設定の共有）
+├── docker-compose.yml      # volumes・環境変数設定
+├── entrypoint.sh           # コンテナエントリポイント
 ├── bin/
-│   └── takt                # ラッパースクリプト（ホストのtaktを置き換え）
+│   └── takt                # ラッパースクリプト（認証トークン取得 + Docker実行）
 └── setup.sh                # セットアップスクリプト（ビルド + PATH設定）
 ```
 
@@ -21,6 +22,7 @@ takt-sandbox/
 
 - Docker Desktop
 - ホストに Claude Code がログイン済み（`claude login`）
+- Python 3（macOS / Linux で標準搭載）
 
 ### インストール
 
@@ -53,10 +55,21 @@ takt "タスクの内容"
 
 ラッパースクリプトが自動的にDockerコンテナ内でtaktを実行する。
 
+## 認証
+
+ラッパースクリプト (`bin/takt`) が以下の優先順で認証情報を取得し、環境変数としてコンテナに渡す:
+
+1. **環境変数 `CLAUDE_CODE_OAUTH_TOKEN`** — 既に設定されている場合はそのまま使用
+2. **環境変数 `ANTHROPIC_API_KEY`** — API キーが設定されている場合はそのまま使用
+3. **macOS キーチェーン** — `security` コマンドで `Claude Code-credentials` から OAuth トークンを抽出
+4. **`~/.claude/.credentials.json`** — Linux 環境で使用されるファイルベースの認証
+
+> **注意:** macOS の Claude Code はキーチェーンに認証情報を保存し、`.credentials.json` は使用しない。
+
 ## 仕組み
 
 - Claude Code のセッションデータは named volume (`claude-data`) で永続化。セッション継続（resume）が可能
-- ホストの `~/.claude/.credentials.json` のみを読み取り専用でマウントして認証情報を共有（hooks や permissions 等のホスト固有設定は持ち込まない）
+- 認証は OAuth トークンを `CLAUDE_CODE_OAUTH_TOKEN` 環境変数でコンテナに渡す（ファイルマウント不要）
 - ホストの `~/.takt/` をマウントしてワークフロー・エージェント設定を共有
 - プロジェクトディレクトリは `/workspace` にマウント（読み書き可能）
 - ホストOSの他のファイルにはアクセスできない
@@ -88,4 +101,4 @@ takt /clear
 
 ### コンテナ内の Claude Code 設定
 
-コンテナには認証情報（`.credentials.json`）のみが共有される。ホストの `~/.claude/settings.json` にある hooks や permissions はコンテナに持ち込まれないため、コンテナ内の Claude Code はデフォルト設定で動作する。
+コンテナには認証トークンのみが環境変数で渡される。ホストの `~/.claude/settings.json` にある hooks や permissions はコンテナに持ち込まれないため、コンテナ内の Claude Code はデフォルト設定で動作する。

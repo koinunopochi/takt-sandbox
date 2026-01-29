@@ -7,6 +7,8 @@ RUN apt-get update && \
 
 RUN npm install -g @anthropic-ai/claude-code takt
 
+COPY entrypoint.sh /entrypoint.sh
+
 WORKDIR /workspace
 
-ENTRYPOINT ["takt"]
+ENTRYPOINT ["/entrypoint.sh"]

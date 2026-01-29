@@ -5,4 +5,31 @@ SANDBOX_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 export TAKT_PROJECT_DIR="$(pwd)"
 
+# --- 認証トークンの取得 ---
+# 優先順: 環境変数 > macOS キーチェーン > ~/.claude/.credentials.json
+if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+  : # 既に設定済み
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+  : # API キーが設定済み
+elif [ "$(uname)" = "Darwin" ]; then
+  # macOS: キーチェーンから OAuth トークンを抽出
+  CREDS_JSON=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null) || true
+  if [ -n "$CREDS_JSON" ]; then
+    export CLAUDE_CODE_OAUTH_TOKEN
+    CLAUDE_CODE_OAUTH_TOKEN=$(echo "$CREDS_JSON" | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['claudeAiOauth']['accessToken'])")
+  else
+    echo "[ERROR] Claude Code の認証情報が見つかりません。" >&2
+    echo "        'claude login' をホストで実行してください。" >&2
+    exit 1
+  fi
+elif [ -f "$HOME/.claude/.credentials.json" ]; then
+  # Linux: .credentials.json からトークンを抽出
+  export CLAUDE_CODE_OAUTH_TOKEN
+  CLAUDE_CODE_OAUTH_TOKEN=$(python3 -c "import json; print(json.load(open('$HOME/.claude/.credentials.json'))['claudeAiOauth']['accessToken'])")
+else
+  echo "[ERROR] Claude Code の認証情報が見つかりません。" >&2
+  echo "        'claude login' をホストで実行してください。" >&2
+  exit 1
+fi
+
 docker compose -f "$SANDBOX_DIR/docker-compose.yml" run --rm takt "$@"
